@@ -1,0 +1,43 @@
+# ansible-playbook crea_user_jjserranog --vault-password-file .cred
+- hosts:  all
+  become: yes
+  gather_facts: no
+  remote_user: javi
+  ignore_errors: true
+  vars_files:
+      - passwd_users.yaml       
+  vars:
+    users:
+    - autoansi
+  tasks:
+  - name: "Create user accounts and add users to groups"
+    user:
+      name: "{{ item }}"
+      password: "{{ jjserranog | password_hash('sha512') }}"
+      groups: "adm"
+      uid: 20001
+      shell: /bin/bash
+    with_items: "{{ users }}"
+    tags:
+      - add
+  - name:
+    shell: chage  jjserranog  -M 30 -W 7
+    tags:
+      - expiration
+  - name: Set up multiple authorized keys
+    authorized_key:
+      user:  jjserranog
+      state: present
+      key: "{{ item }}"
+    with_file:
+      - public_keys/admjjserranog
+    tags:
+     - pubkeys
+  - name: Allow "{{ users }}" group to have passwordless sudo
+    lineinfile:
+      dest: /etc/sudoers
+      state: present
+      line: 'jjserranog ALL=(ALL) NOPASSWD: ALL'
+      validate: 'visudo -cf %s'
+    tags:
+     - sudo
