@@ -1,0 +1,29 @@
+---
+- name: Start a GCP instance which is currently stopped
+  hosts: localhost
+  gather_facts: false
+  vars:
+    inventory_hostname_short: esassvansible02
+    gcp_ce_machine_type: e2-micro
+    gcp_ce_zone: europe-west1-b
+    #gcp_ce_project_name: ats-gcp-shared-mgmt #No reconoce el nombre cambiado
+    gcp_ce_project_name: acciona-cpd-service
+  tasks:
+    - name: obtain Access token from your session
+      command: gcloud auth print-access-token
+      register: access_token_value
+        #- debug: msg=Token  is {{  access_token_value  }}
+
+    - name: Start a GCP VM instance which is currently stopped
+      gcp_compute_instance:
+        name: "{{ inventory_hostname_short }}"
+        deletion_protection: yes
+        #machine_type: "{{ gcp_ce_machine_type }}"
+        zone: "{{ gcp_ce_zone }}"
+        project: "{{ gcp_ce_project_name }}"
+        auth_kind: accesstoken
+        #access_token: "{{ lookup ('env', 'GCP_TOKEN') }}"  
+        access_token: "{{ access_token_value.stdout }}"  
+        status: RUNNING
+      delegate_to: localhost
+
