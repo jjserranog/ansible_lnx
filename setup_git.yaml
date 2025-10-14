@@ -1,0 +1,55 @@
+---
+- name: Install Git and Clone Remote Repository
+  hosts: localhost
+  #become: true
+  vars:
+    repo_url: https://github.com/jjserranog/ansible_lnx.git
+    repo_dest: /home/iadmjjserranog/ansible_lnx
+    company_name: Acciona
+    company_git_username: jjserranog
+     #company_git_password: supersecretpassword
+    company_git_email: jjserranog@acciona.com
+    company_git_branch: main
+  tasks:
+    - name: Install Git
+      become: true
+      apt:
+        name: git
+        state: present
+        update_cache: yes
+
+    - name: Configure Git for {{ company_name }}
+      git_config:
+        name: user.name
+        value: "{{ company_git_username }}"
+        scope: global
+      when: company_git_username is defined
+
+    - name: Set Git email for {{ company_name }}
+      git_config:
+        name: user.email
+        value: "{{ company_git_email }}"
+        scope: global
+      when: company_git_email is defined
+
+    - name: Clone Remote Git Repository for {{ company_name }}
+      git:
+        repo: "{{ repo_url }}"
+        dest: "{{ repo_dest }}"
+        version: "{{ company_git_branch }}"
+        depth: 1
+        force: yes
+        clone: yes
+        user: "{{ company_git_username }}"
+        #password: "{{ company_git_password }}"
+      when: company_git_username is defined and company_git_password is defined
+
+    - name: Pull latest changes from Git Repository for {{ company_name }}
+      git:
+        repo: "{{ repo_url }}"
+        dest: "{{ repo_dest }}"
+        version: "{{ company_git_branch }}"
+        force: yes
+        user: "{{ company_git_username }}"
+        #password: "{{ company_git_password }}"
+      when: company_git_username is defined and company_git_password is defined and repo_dest is defined
