@@ -1,1 +1,23 @@
 ---
+- name:  Instalacion  SW Base
+  hosts: localhost
+  gather_facts: no
+  become: yes
+  vars:
+    packages:
+    - git
+    - ansible 
+    - podman
+    - podman-compose
+
+
+  #ignore_errors: yes
+  tasks:
+
+  - name: "Instala  sw {{ packages }}"
+    package:
+      name:  "{{ packages }}"
+      state: latest
+    tags:
+     - sw
+
