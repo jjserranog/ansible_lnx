@@ -1,0 +1,29 @@
+---
+- name:  Instalacion  OC Cliente
+  hosts: localhost
+  gather_facts: no
+  become: yes
+  ignore_errors: true  
+  vars:
+    hom: /home/admjjserranog
+  tasks:
+  - name: "Descarga oc client"
+    ansible.builtin.get_url:
+      url:  https://downloads-openshift-console.apps.cluster-dev-it.acciona.int/amd64/linux/oc
+      dest: /usr/local/bin/oc
+      mode: '0640'
+  - name: "Instala  gcloud "
+    ansible.builtin.apt:
+        name: google-cloud-cli
+        state: latest
+        update_cache: yes
+    tags:
+       - sw
+  - name: Insert/Update oc alias"
+    ansible.builtin.blockinfile:
+      #path: "/home/admjjserranog/.bashrc"
+      path: "{{ hom }}/.bashrc"
+      block: |
+        alias ocdes="oc login --username=local.acciona_read --server=https://api.cluster-dev-it.acciona.int:6443"
+        alias ocpre="oc login --username=local.acciona_read --server=https://api.cluster-pre-it.acciona.int:6443"
+        alias ocpro="oc login --username=local.acciona_read --server=https://api.cluster-pro-it.acciona.int:6443"

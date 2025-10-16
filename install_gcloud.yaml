@@ -1,0 +1,38 @@
+---
+- name:  Instalacion  SW Base
+  hosts: localhost
+  gather_facts: no
+  become: yes
+  ignore_errors: true  
+  vars:
+    packages:
+    - apt-transport-https 
+    - ca-certificates
+    - gnupg 
+    - curl
+    - gpg  
+
+  tasks:
+  - name: "Instala  dependencias sw {{ packages }}"
+    ansible.builtin.package:
+      name:  "{{ packages }}"
+      state: latest
+    tags:
+     - sw
+
+#curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo gpg --dearmor -o /usr/share/keyrings/cloud.google.gpg
+  - name : Add gcloud key
+    ansible.builtin.command:  "curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key --keyring /usr/share/keyrings/cloud.google.gpg add -"
+
+  - name: somerepo | apt source
+    ansible.builtin.apt_repository:
+        repo: "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main"
+        state: present
+
+  - name: "Instala  gcloud "
+    ansible.builtin.apt:
+        name: google-cloud-cli
+        state: latest
+        update_cache: yes
+    tags:
+       - sw
