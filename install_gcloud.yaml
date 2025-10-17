@@ -10,7 +10,7 @@
     - ca-certificates
     - gnupg 
     - curl
-    - gpg  
+    - python3-google-auth  
 
   tasks:
   - name: "Instala  dependencias sw {{ packages }}"
