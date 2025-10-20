@@ -11,8 +11,8 @@
     ansible.builtin.get_url:
       url:  https://downloads-openshift-console.apps.cluster-dev-it.acciona.int/amd64/linux/oc
       dest: /usr/local/bin/oc
-      mode: '0640'
-  - name: "Instala  gcloud "
+      mode: '0777'
+  - name: "Instala  cliente oc  "
     ansible.builtin.apt:
         name: google-cloud-cli
         state: latest

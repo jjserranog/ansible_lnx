@@ -1,5 +1,5 @@
 ---
-- name: Start a GCP instance which is currently stopped
+- name: Playbook to  Stop a GCP instance
   hosts: localhost
   gather_facts: false
   vars:
@@ -14,7 +14,7 @@
       register: access_token_value
         #- debug: msg=Token  is {{  access_token_value  }}
 
-    - name: Start a GCP VM instance which is currently stopped
+    - name: Stop a GCP VM instance which is currently stopped
       gcp_compute_instance:
         name: "{{ inventory_hostname_short }}"
         deletion_protection: yes
