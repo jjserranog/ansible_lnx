@@ -14,7 +14,7 @@
       register: access_token_value
         #- debug: msg=Token  is {{  access_token_value  }}
 
-    - name: Stop a GCP VM instance which is currently stopped
+    - name: Stop a GCP VM instance "{{ inventory_hostname_short }}"
       gcp_compute_instance:
         name: "{{ inventory_hostname_short }}"
         deletion_protection: yes
