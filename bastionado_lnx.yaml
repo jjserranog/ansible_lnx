@@ -1,0 +1,112 @@
+############NO PROBADO #############################################
+---
+- name: Hardening de Seguridad Permanente con Backups - Ubuntu & RedHat
+  hosts: all
+  become: yes
+  vars:
+    ssh_port: 22
+
+  tasks:
+    # ==========================================================
+    # 1. SEGURIDAD DE RED Y KERNEL (Backups en /etc/sysctl.conf)
+    # ==========================================================
+    - name: Configurar sysctl.conf con Backup
+      sysctl:
+        name: "{{ item.key }}"
+        value: "{{ item.value }}"
+        state: present
+        reload: yes
+        sysctl_file: /etc/sysctl.conf
+      loop:
+        - { key: 'net.ipv4.conf.all.accept_redirects', value: '0' }
+        - { key: 'net.ipv4.conf.all.rp_filter', value: '1' }
+        - { key: 'net.ipv4.icmp_echo_ignore_broadcasts', value: '1' }
+      # Nota: El módulo sysctl modifica el archivo; para un backup manual 
+      # de este archivo podrías usar el módulo 'copy' antes, pero sysctl 
+      # es atómico.
+
+    # ==========================================================
+    # 2. SSH CON BACKUP Y VALIDACIÓN
+    # ==========================================================
+    - name: Configurar SSH seguro con Backup del archivo original
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: "{{ item.regexp }}"
+        line: "{{ item.line }}"
+        state: present
+        backup: yes  # Crea un backup tipo sshd_config.XXXX.bak
+        validate: '/usr/sbin/sshd -t -f %s'
+      loop:
+        - { regexp: "^PermitRootLogin", line: "PermitRootLogin no" }
+        - { regexp: "^PasswordAuthentication", line: "PasswordAuthentication no" }
+      notify: Restart SSH
+
+    # ==========================================================
+    # 3. BANNER LEGAL (Aviso de Privacidad)
+    # ==========================================================
+    - name: Crear banner legal de acceso persistente
+      copy:
+        dest: "{{ item }}"
+        content: |
+          *****************************************************************
+          * ACCESO RESTRINGIDO: Este sistema es para uso autorizado solo. *
+          * Todas las actividades son monitoreadas y registradas.         *
+          *****************************************************************
+        backup: yes
+      loop:
+        - /etc/issue      # Se muestra antes del login local
+        - /etc/issue.net  # Se muestra antes del login SSH
+        - /etc/motd       # Se muestra después del login exitoso
+
+    # ==========================================================
+    # 4. PERSISTENCIA DE FIREWALL
+    # ==========================================================
+    - name: [Ubuntu] Configurar UFW Permanente
+      ufw: { state: enabled, policy: deny }
+      when: ansible_os_family == "Debian"
+
+    - name: [RedHat] Configurar Firewalld Permanente
+      firewalld:
+        port: "{{ ssh_port }}/tcp"
+        permanent: yes
+        state: enabled
+        immediate: yes
+      when: ansible_os_family == "RedHat"
+
+    # ==========================================================
+    # 5. MONTAJES SEGUROS (Backup de /etc/fstab)
+    # ==========================================================
+    - name: Backup de /etc/fstab antes de modificar montajes
+      copy:
+        src: /etc/fstab
+        dest: "/etc/fstab.{{ ansible_date_time.iso8601 }}.bak"
+        remote_src: yes
+
+    - name: Asegurar montado de /tmp en fstab
+      mount:
+        path: /tmp
+        src: tmpfs
+        fstype: tmpfs
+        opts: "defaults,nodev,nosuid,noexec"
+        state: present
+
+    # ==========================================================
+    # 6. AUDITORÍA (Archivos nuevos, no requieren backup del original)
+    # ==========================================================
+    - name: Configurar reglas de Auditd (Persistentes e Inmutables)
+      copy:
+        dest: /etc/audit/rules.d/99_hardening.rules
+        content: |
+          -D
+          -b 8192
+          -w /etc/sudoers -p wa -k scope
+          -a always,exit -F arch=b64 -S open -F exit=-EACCES -k access
+          -e 2
+      notify: Reload Audit Rules
+
+  handlers:
+    - name: Restart SSH
+      service: { name: sshd, state: reloaded }
+
+    - name: Reload Audit Rules
+      command: augenrules --load
